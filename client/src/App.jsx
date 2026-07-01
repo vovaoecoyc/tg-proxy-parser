@@ -5,7 +5,7 @@ import { ProxyList } from './components/ProxyList';
 import './App.css';
 
 function App() {
-  const { proxies, filter, setFilter, checkingIds, checkProxy, checkAllProxies, autoCheckProgress } = useProxies();
+  const { proxies, filter, setFilter, checkingIds, checkProxy, checkCurrentProxies, autoCheckProgress } = useProxies();
   const [copiedId, setCopiedId] = useState(null);
 
   const handleCopy = (link) => {
@@ -21,7 +21,7 @@ function App() {
       <div className="controls">
         <FilterToggle filter={filter} setFilter={setFilter} />
         <button 
-          onClick={checkAllProxies} 
+          onClick={checkCurrentProxies} 
           className="btn-check-all"
           disabled={checkingIds.size > 0 || !!autoCheckProgress}
         >

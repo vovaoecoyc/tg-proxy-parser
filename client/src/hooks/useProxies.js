@@ -75,26 +75,8 @@ export function useProxies() {
     }
   };
 
-  const checkAllProxies = async () => {
-    const ids = currentProxies.map(p => p.id);
-    setCheckingIds(new Set(ids));
-    setProxies(prev => prev.map(p => ids.includes(p.id) ? { ...p, status: 'checking' } : p));
-    setNewProxies(prev => prev.map(p => ids.includes(p.id) ? { ...p, status: 'checking' } : p));
-    try {
-      const response = await fetch(`${API_BASE}/proxies/check-all`, {
-        method: 'POST',
-      });
-      const results = await response.json();
-      setProxies(results);
-      setNewProxies(prev => {
-        const resultMap = new Map(results.map(r => [r.id, r]));
-        return prev.map(p => resultMap.get(p.id) || p);
-      });
-    } catch (error) {
-      console.error('Failed to check all proxies:', error);
-    } finally {
-      setCheckingIds(new Set());
-    }
+  const checkCurrentProxies = async () => {
+    await autoCheckAll(currentProxies);
   };
 
   const autoCheckAll = async (proxiesToCheck) => {
@@ -130,16 +112,27 @@ export function useProxies() {
           return Array.from(map.values());
         });
 
+        const resultIds = new Set(results.map(r => r.id));
+        setCheckingIds(prev => {
+          const next = new Set(prev);
+          for (const id of resultIds) next.delete(id);
+          return next;
+        });
+
         checked += results.length;
         setAutoCheckProgress(prev => ({ ...prev, checked }));
       } catch (error) {
         console.error('Batch check failed:', error);
+        const batchIdSet = new Set(batchIds);
+        setCheckingIds(prev => {
+          const next = new Set(prev);
+          for (const id of batchIdSet) next.delete(id);
+          return next;
+        });
         checked += batchIds.length;
         setAutoCheckProgress(prev => ({ ...prev, checked }));
       }
     });
-
-    setCheckingIds(new Set());
     setAutoCheckProgress(null);
   };
 
@@ -174,7 +167,7 @@ export function useProxies() {
     setFilter,
     checkingIds,
     checkProxy,
-    checkAllProxies,
+    checkCurrentProxies,
     autoCheckProgress,
     refresh: () => {
       fetchAllProxies();
