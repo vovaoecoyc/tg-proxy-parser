@@ -6,7 +6,7 @@ export function ProxyItem({ proxy, onCheck, onCopy, isChecking }) {
       <div className="proxy-td">{proxy.server}</div>
       <div className="proxy-td">{proxy.port}</div>
       <div className="proxy-td">
-        <StatusBadge status={proxy.status} />
+        <StatusBadge status={isChecking ? 'checking' : proxy.status} />
       </div>
       <div className="proxy-td">
         <button onClick={() => onCheck(proxy.id)} className="btn-check" disabled={isChecking}>
