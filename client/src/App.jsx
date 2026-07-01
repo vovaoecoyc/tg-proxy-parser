@@ -5,7 +5,7 @@ import { ProxyList } from './components/ProxyList';
 import './App.css';
 
 function App() {
-  const { proxies, filter, setFilter, checkingIds, checkProxy, checkAllProxies } = useProxies();
+  const { proxies, filter, setFilter, checkingIds, checkProxy, checkAllProxies, autoCheckProgress } = useProxies();
   const [copiedId, setCopiedId] = useState(null);
 
   const handleCopy = (link) => {
@@ -23,11 +23,25 @@ function App() {
         <button 
           onClick={checkAllProxies} 
           className="btn-check-all"
-          disabled={checkingIds.size > 0}
+          disabled={checkingIds.size > 0 || !!autoCheckProgress}
         >
           {checkingIds.size > 0 ? 'Checking...' : 'Check All'}
         </button>
       </div>
+
+      {autoCheckProgress && (
+        <div className="auto-check-progress">
+          <div className="progress-text">
+            Проверено: {autoCheckProgress.checked} / {autoCheckProgress.total}
+          </div>
+          <div className="progress-bar">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${(autoCheckProgress.checked / autoCheckProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {copiedId && <div className="toast">Link copied!</div>}
 
