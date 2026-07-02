@@ -10,12 +10,13 @@ function chunk(array, size) {
   return chunks;
 }
 
-async function runWithConcurrency(items, limit, fn) {
+async function runWithConcurrency(items, limit, fn, signal) {
   const results = [];
   let index = 0;
 
   async function worker() {
     while (index < items.length) {
+      if (signal?.aborted) break;
       const currentIndex = index++;
       const result = await fn(items[currentIndex], currentIndex);
       results.push(result);
@@ -79,7 +80,7 @@ export function useProxies() {
     await autoCheckAll(currentProxies);
   };
 
-  const autoCheckAll = async (proxiesToCheck) => {
+  const autoCheckAll = async (proxiesToCheck, signal) => {
     if (proxiesToCheck.length === 0) return;
 
     const BATCH_SIZE = 20;
@@ -93,11 +94,13 @@ export function useProxies() {
     let checked = 0;
 
     await runWithConcurrency(batches, CONCURRENCY, async (batchIds) => {
+      if (signal?.aborted) return;
       try {
         const response = await fetch(`${API_BASE}/proxies/check-batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids: batchIds }),
+          signal,
         });
         const results = await response.json();
 
@@ -122,6 +125,7 @@ export function useProxies() {
         checked += results.length;
         setAutoCheckProgress(prev => ({ ...prev, checked }));
       } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Batch check failed:', error);
         const batchIdSet = new Set(batchIds);
         setCheckingIds(prev => {
@@ -132,22 +136,23 @@ export function useProxies() {
         checked += batchIds.length;
         setAutoCheckProgress(prev => ({ ...prev, checked }));
       }
-    });
-    setAutoCheckProgress(null);
+    }, signal);
+    if (!signal?.aborted) setAutoCheckProgress(null);
   };
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     const init = async () => {
       try {
-        const response = await fetch(`${API_BASE}/proxies`);
+        const response = await fetch(`${API_BASE}/proxies`, { signal: controller.signal });
         const data = await response.json();
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setProxies(data);
 
-        await autoCheckAll(data);
+        await autoCheckAll(data, controller.signal);
       } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Failed to fetch proxies:', error);
       }
     };
@@ -156,7 +161,7 @@ export function useProxies() {
 
     fetchNewProxies();
 
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, []);
 
   const currentProxies = filter === 'all' ? proxies : newProxies;
