@@ -137,7 +137,7 @@ export function useProxies() {
         setAutoCheckProgress(prev => ({ ...prev, checked }));
       }
     }, signal);
-    if (!signal?.aborted) setAutoCheckProgress(null);
+    setAutoCheckProgress(null);
   };
 
   useEffect(() => {

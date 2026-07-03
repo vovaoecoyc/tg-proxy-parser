@@ -54,25 +54,30 @@ proxiesRouter.post('/proxies/check-all', async (c) => {
 });
 
 proxiesRouter.post('/proxies/check-batch', async (c) => {
-  const { ids } = await c.req.json();
+  try {
+    const { ids } = await c.req.json();
 
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return c.json({ error: 'ids must be a non-empty array' }, 400);
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return c.json({ error: 'ids must be a non-empty array' }, 400);
+    }
+
+    if (proxiesCache.length === 0) {
+      proxiesCache = loadAllProxies();
+    }
+
+    const proxiesToCheck = proxiesCache.filter(p => ids.includes(p.id));
+    const results = await Promise.all(proxiesToCheck.map(p => checkProxy(p)));
+
+    for (const result of results) {
+      const idx = proxiesCache.findIndex(p => p.id === result.id);
+      if (idx !== -1) proxiesCache[idx] = result;
+    }
+
+    return c.json(results);
+  } catch (error) {
+    console.error('check-batch failed:', error.message);
+    return c.json({ error: 'check-batch failed', details: error.message }, 500);
   }
-
-  if (proxiesCache.length === 0) {
-    proxiesCache = loadAllProxies();
-  }
-
-  const proxiesToCheck = proxiesCache.filter(p => ids.includes(p.id));
-  const results = await Promise.all(proxiesToCheck.map(p => checkProxy(p)));
-
-  for (const result of results) {
-    const idx = proxiesCache.findIndex(p => p.id === result.id);
-    if (idx !== -1) proxiesCache[idx] = result;
-  }
-
-  return c.json(results);
 });
 
 export default proxiesRouter;
