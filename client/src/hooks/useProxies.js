@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE = '/api';
 
@@ -35,6 +35,14 @@ export function useProxies() {
   const [checkingIds, setCheckingIds] = useState(new Set());
   const [autoCheckProgress, setAutoCheckProgress] = useState(null);
 
+  const controllerRef = useRef(new AbortController());
+  const checkIdRef = useRef(0);
+
+  const cancelAllChecks = useCallback(() => {
+    controllerRef.current.abort();
+    controllerRef.current = new AbortController();
+  }, []);
+
   const fetchAllProxies = async () => {
     try {
       const response = await fetch(`${API_BASE}/proxies`);
@@ -56,16 +64,19 @@ export function useProxies() {
   };
 
   const checkProxy = async (id) => {
+    const signal = controllerRef.current.signal;
     setCheckingIds(prev => new Set(prev).add(id));
     try {
       const response = await fetch(`${API_BASE}/proxy/${id}/check`, {
         method: 'POST',
+        signal,
       });
       const updatedProxy = await response.json();
       
       setProxies(prev => prev.map(p => p.id === id ? updatedProxy : p));
       setNewProxies(prev => prev.map(p => p.id === id ? updatedProxy : p));
     } catch (error) {
+      if (error.name === 'AbortError') return;
       console.error('Failed to check proxy:', error);
     } finally {
       setCheckingIds(prev => {
@@ -80,8 +91,16 @@ export function useProxies() {
     await autoCheckAll(currentProxies);
   };
 
+  const checkFilteredProxies = async (proxiesToCheck) => {
+    cancelAllChecks();
+    await autoCheckAll(proxiesToCheck, controllerRef.current.signal);
+  };
+
   const autoCheckAll = async (proxiesToCheck, signal) => {
     if (proxiesToCheck.length === 0) return;
+
+    checkIdRef.current += 1;
+    const currentCheckId = checkIdRef.current;
 
     const BATCH_SIZE = 20;
     const CONCURRENCY = 5;
@@ -103,6 +122,8 @@ export function useProxies() {
           signal,
         });
         const results = await response.json();
+
+        if (checkIdRef.current !== currentCheckId) return;
 
         setProxies(prev => {
           const map = new Map(prev.map(p => [p.id, p]));
@@ -127,6 +148,7 @@ export function useProxies() {
       } catch (error) {
         if (error.name === 'AbortError') return;
         console.error('Batch check failed:', error);
+        if (checkIdRef.current !== currentCheckId) return;
         const batchIdSet = new Set(batchIds);
         setCheckingIds(prev => {
           const next = new Set(prev);
@@ -137,20 +159,21 @@ export function useProxies() {
         setAutoCheckProgress(prev => ({ ...prev, checked }));
       }
     }, signal);
+    if (checkIdRef.current !== currentCheckId) return;
     setAutoCheckProgress(null);
   };
 
   useEffect(() => {
-    const controller = new AbortController();
+    const signal = controllerRef.current.signal;
 
     const init = async () => {
       try {
-        const response = await fetch(`${API_BASE}/proxies`, { signal: controller.signal });
+        const response = await fetch(`${API_BASE}/proxies`, { signal });
         const data = await response.json();
-        if (controller.signal.aborted) return;
+        if (signal.aborted) return;
         setProxies(data);
 
-        await autoCheckAll(data, controller.signal);
+        await autoCheckAll(data, signal);
       } catch (error) {
         if (error.name === 'AbortError') return;
         console.error('Failed to fetch proxies:', error);
@@ -160,20 +183,22 @@ export function useProxies() {
     init();
 
     fetchNewProxies();
-
-    return () => { controller.abort(); };
   }, []);
 
   const currentProxies = filter === 'all' ? proxies : newProxies;
 
   return {
     proxies: currentProxies,
+    allProxies: proxies,
+    newProxiesList: newProxies,
     filter,
     setFilter,
     checkingIds,
     checkProxy,
     checkCurrentProxies,
+    checkFilteredProxies,
     autoCheckProgress,
+    cancelAllChecks,
     refresh: () => {
       fetchAllProxies();
       fetchNewProxies();

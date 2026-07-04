@@ -57,6 +57,9 @@ export function ProxyList({ proxies, onCheck, onCopy, checkingIds }) {
           })}
         </div>
       </div>
+      <div className="proxy-count">
+        Servers: {proxies.length}
+      </div>
     </div>
   );
 }

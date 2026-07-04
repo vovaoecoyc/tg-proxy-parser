@@ -5,8 +5,14 @@ import { ProxyList } from './components/ProxyList';
 import './App.css';
 
 function App() {
-  const { proxies, filter, setFilter, checkingIds, checkProxy, checkCurrentProxies, autoCheckProgress } = useProxies();
+  const { proxies, allProxies, newProxiesList, filter, setFilter, checkingIds, checkProxy, checkCurrentProxies, checkFilteredProxies, autoCheckProgress } = useProxies();
   const [copiedId, setCopiedId] = useState(null);
+
+  const handleFilterChange = (newFilter) => {
+    const targetProxies = newFilter === 'all' ? allProxies : newProxiesList;
+    setFilter(newFilter);
+    checkFilteredProxies(targetProxies);
+  };
 
   const handleCopy = (link) => {
     navigator.clipboard.writeText(link);
@@ -19,7 +25,7 @@ function App() {
       <h1>TG Proxy Parser</h1>
       
       <div className="controls">
-        <FilterToggle filter={filter} setFilter={setFilter} />
+        <FilterToggle filter={filter} setFilter={handleFilterChange} />
         <button 
           onClick={checkCurrentProxies} 
           className="btn-check-all"
