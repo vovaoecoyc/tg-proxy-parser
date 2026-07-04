@@ -43,3 +43,7 @@ client/
 - The `/api/proxies/check-all` endpoint fires 150+ concurrent TCP connections via `Promise.all`. This may exhaust file descriptors on constrained hosts.
 - `mtproto-repo/` is a git clone created at runtime — do not commit it.
 - The server reuses `simple-git` instances; `gitService.js` reassigns the `git` variable on each call rather than keeping a persistent instance.
+
+## Language
+
+Always respond in the same language the user writes in. If the user writes in Russian, respond in Russian. If in English, respond in English.
