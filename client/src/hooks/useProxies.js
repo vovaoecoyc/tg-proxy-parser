@@ -34,6 +34,7 @@ export function useProxies() {
   const [filter, setFilter] = useState('all');
   const [checkingIds, setCheckingIds] = useState(new Set());
   const [autoCheckProgress, setAutoCheckProgress] = useState(null);
+  const [sort, setSort] = useState({ field: null, order: null });
 
   const controllerRef = useRef(new AbortController());
   const checkIdRef = useRef(0);
@@ -43,9 +44,14 @@ export function useProxies() {
     controllerRef.current = new AbortController();
   }, []);
 
-  const fetchAllProxies = async () => {
+  const buildSortQuery = (sortState) => {
+    if (!sortState.field) return '';
+    return `?sortField=${encodeURIComponent(sortState.field)}&sortOrder=${encodeURIComponent(sortState.order)}`;
+  };
+
+  const fetchAllProxies = async (sortState = sort) => {
     try {
-      const response = await fetch(`${API_BASE}/proxies`);
+      const response = await fetch(`${API_BASE}/proxies${buildSortQuery(sortState)}`);
       const data = await response.json();
       setProxies(data);
     } catch (error) {
@@ -53,9 +59,21 @@ export function useProxies() {
     }
   };
 
-  const fetchNewProxies = async () => {
+  const toggleStatusSort = async () => {
+    const nextSort = sort.field === 'status'
+      ? { field: 'status', order: sort.order === 'asc' ? 'desc' : 'asc' }
+      : { field: 'status', order: 'asc' };
+    setSort(nextSort);
+    if (filter === 'new') {
+      await fetchNewProxies(nextSort);
+    } else {
+      await fetchAllProxies(nextSort);
+    }
+  };
+
+  const fetchNewProxies = async (sortState = sort) => {
     try {
-      const response = await fetch(`${API_BASE}/proxies/new`);
+      const response = await fetch(`${API_BASE}/proxies/new${buildSortQuery(sortState)}`);
       const data = await response.json();
       setNewProxies(data);
     } catch (error) {
@@ -199,6 +217,9 @@ export function useProxies() {
     checkFilteredProxies,
     autoCheckProgress,
     cancelAllChecks,
+    sortField: sort.field,
+    sortOrder: sort.order,
+    toggleStatusSort,
     refresh: () => {
       fetchAllProxies();
       fetchNewProxies();

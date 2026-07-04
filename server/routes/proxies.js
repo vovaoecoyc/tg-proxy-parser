@@ -6,16 +6,56 @@ const proxiesRouter = new Hono();
 
 let proxiesCache = [];
 
+const STATUS_PRIORITY = {
+  online: 0,
+  offline: 1,
+  unknown: 2,
+  checking: 3,
+};
+
+function sortProxies(list, sortField, sortOrder) {
+  if (!sortField) return list;
+
+  const direction = sortOrder === 'desc' ? -1 : 1;
+  const sorted = [...list];
+
+  if (sortField === 'status') {
+    sorted.sort((a, b) => {
+      const pa = STATUS_PRIORITY[a.status] ?? 99;
+      const pb = STATUS_PRIORITY[b.status] ?? 99;
+      return (pa - pb) * direction;
+    });
+  } else {
+    sorted.sort((a, b) => {
+      const va = a[sortField] ?? '';
+      const vb = b[sortField] ?? '';
+      if (va < vb) return -1 * direction;
+      if (va > vb) return 1 * direction;
+      return 0;
+    });
+  }
+
+  return sorted;
+}
+
 proxiesRouter.get('/proxies', async (c) => {
   if (proxiesCache.length === 0) {
     proxiesCache = loadAllProxies();
   }
-  return c.json(proxiesCache);
+
+  const sortField = c.req.query('sortField');
+  const sortOrder = c.req.query('sortOrder');
+
+  return c.json(sortProxies(proxiesCache, sortField, sortOrder));
 });
 
 proxiesRouter.get('/proxies/new', async (c) => {
   const newProxies = await loadNewProxies();
-  return c.json(newProxies);
+
+  const sortField = c.req.query('sortField');
+  const sortOrder = c.req.query('sortOrder');
+
+  return c.json(sortProxies(newProxies, sortField, sortOrder));
 });
 
 proxiesRouter.post('/proxy/:id/check', async (c) => {

@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ProxyItem } from './ProxyItem';
 
-export function ProxyList({ proxies, onCheck, onCopy, checkingIds }) {
+export function ProxyList({ proxies, onCheck, onCopy, checkingIds, sortField, sortOrder, onSortStatus }) {
   const parentRef = useRef(null);
 
   const virtualizer = useVirtualizer({
@@ -16,12 +16,25 @@ export function ProxyList({ proxies, onCheck, onCopy, checkingIds }) {
     return <p className="empty-message">No proxies found</p>;
   }
 
+  const statusIndicator = sortField === 'status'
+    ? (sortOrder === 'asc' ? '▲' : '▼')
+    : '↕';
+
   return (
     <div className="proxy-table-wrapper">
       <div className="proxy-table-header">
         <div className="proxy-th">Server</div>
         <div className="proxy-th">Port</div>
-        <div className="proxy-th">Status</div>
+        <div
+          className="proxy-th proxy-th-sortable"
+          onClick={onSortStatus}
+          role="button"
+        >
+          Status
+          <span className={`proxy-th-sort-indicator${sortField === 'status' ? ' active' : ''}`}>
+            {statusIndicator}
+          </span>
+        </div>
         <div className="proxy-th">Actions</div>
       </div>
       <div ref={parentRef} className="proxy-table-scroll">

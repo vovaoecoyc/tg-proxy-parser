@@ -124,6 +124,27 @@ h1 {
   flex: 1;
 }
 
+.proxy-th-sortable {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.proxy-th-sortable:hover {
+  color: #3498db;
+}
+
+.proxy-th-sort-indicator {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.proxy-th-sort-indicator.active {
+  opacity: 1;
+}
+
 .proxy-table-scroll {
   flex: 1;
   overflow-y: auto;

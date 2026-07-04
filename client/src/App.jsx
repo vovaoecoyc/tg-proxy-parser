@@ -5,7 +5,7 @@ import { ProxyList } from './components/ProxyList';
 import './App.css';
 
 function App() {
-  const { proxies, allProxies, newProxiesList, filter, setFilter, checkingIds, checkProxy, checkCurrentProxies, checkFilteredProxies, autoCheckProgress } = useProxies();
+  const { proxies, allProxies, newProxiesList, filter, setFilter, checkingIds, checkProxy, checkCurrentProxies, checkFilteredProxies, autoCheckProgress, sortField, sortOrder, toggleStatusSort } = useProxies();
   const [copiedId, setCopiedId] = useState(null);
 
   const handleFilterChange = (newFilter) => {
@@ -51,11 +51,14 @@ function App() {
 
       {copiedId && <div className="toast">Link copied!</div>}
 
-      <ProxyList 
-        proxies={proxies} 
-        onCheck={checkProxy} 
+      <ProxyList
+        proxies={proxies}
+        onCheck={checkProxy}
         onCopy={handleCopy}
         checkingIds={checkingIds}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSortStatus={toggleStatusSort}
       />
     </div>
   );
