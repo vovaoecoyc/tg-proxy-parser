@@ -1,0 +1,12 @@
+node_modules
+client/node_modules
+client/dist
+mtproto-repo
+.git
+.gitignore
+.superpowers
+docs
+opencode.json
+*.md
+.vscode
+.idea
