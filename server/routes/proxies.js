@@ -52,10 +52,15 @@ proxiesRouter.get('/proxies', async (c) => {
 proxiesRouter.get('/proxies/new', async (c) => {
   const newProxies = await loadNewProxies();
 
+  const merged = newProxies.map(np => {
+    const cached = proxiesCache.find(p => p.id === np.id);
+    return cached || np;
+  });
+
   const sortField = c.req.query('sortField');
   const sortOrder = c.req.query('sortOrder');
 
-  return c.json(sortProxies(newProxies, sortField, sortOrder));
+  return c.json(sortProxies(merged, sortField, sortOrder));
 });
 
 proxiesRouter.post('/proxy/:id/check', async (c) => {
